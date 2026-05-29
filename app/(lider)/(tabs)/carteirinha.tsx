@@ -1,21 +1,21 @@
+import { supabase } from "@/supabase";
+import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  Pressable,
+  ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   Image,
   ImageBackground,
-  ActivityIndicator,
-  Alert,
-  useWindowDimensions,
   Platform,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
-import { router } from "expo-router";
-import { supabase } from "@/supabase";
 
 const IMG_WATERMARK = require("../../../assets/images/logo_fundo.png");
 const IMG_TITULO = require("../../../assets/images/titulo_jovem.png");
@@ -379,7 +379,7 @@ function clamp(v: number, min: number, max: number) {
 
 const styles = StyleSheet.create({
   // ✅ cores “torcida”: preto no fundo + detalhes azul atual (pode mudar depois)
-  page: { flex: 1, backgroundColor: "#0b0b0c" },
+  page: { flex: 1, backgroundColor: "#ffffff" },
 
   header: {
     backgroundColor: "#0ea5ff", // se quiser trocar pra preto/vermelho depois, eu troco
@@ -423,14 +423,21 @@ const styles = StyleSheet.create({
   },
 
   cardInner: {
+    borderWidth: 2,
+    borderColor: "rgba(0,0,0,0.18)",
     flex: 1,
     borderRadius: 18,
     overflow: "hidden",
     backgroundColor: "#fff",
     ...Platform.select({
-      ios: { shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 24, shadowOffset: { width: 0, height: 16 } },
-      android: { elevation: 9 },
-    }),
+        ios: {
+            shadowColor: "#000",
+            shadowOpacity: 0.18,
+            shadowRadius: 18,
+            shadowOffset: { width: 0, height: 12 },
+        },
+        android: { elevation: 10 },
+        }),
   },
   bg: { opacity: 1 },
 
@@ -552,7 +559,7 @@ const styles = StyleSheet.create({
 
   logosBack: {
     position: "absolute",
-    left: 14,
+    right: 14,
     bottom: 36,
     width: 140,
     height: 44,

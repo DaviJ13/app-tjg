@@ -1,7 +1,7 @@
 /**
  * cadastro-membro.tsx  (app/(lider)/cadastro-membro.tsx)
  * Tela do RESPONSÁVEL DO BONDE para gerar código de cadastro
- * e depois visualizar membros pendentes.
+ * Usa a tabela correta: convites
  */
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/supabase";
@@ -19,36 +19,36 @@ import {
   View,
 } from "react-native";
 
-type CodigoPendente = {
+type Convite = {
   id: string;
   codigo: string;
   usado: boolean;
   expira_em: string;
-  criado_em: string;
+  created_at: string;
 };
 
 export default function CadastroMembro() {
   const { profile } = useAuth();
   const [gerandoCodigo, setGerandoCodigo] = useState(false);
-  const [codigos, setCodigos] = useState<CodigoPendente[]>([]);
+  const [convites, setConvites] = useState<Convite[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    carregarCodigos();
+    carregarConvites();
   }, []);
 
-  async function carregarCodigos() {
+  async function carregarConvites() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("codigos_cadastro")
-        .select("id, codigo, usado, expira_em, criado_em")
-        .eq("gerado_por", profile?.id)
-        .order("criado_em", { ascending: false })
+        .from("convites")
+        .select("id, codigo, usado, expira_em, created_at")
+        .eq("criado_por", profile?.id)
+        .order("created_at", { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      setCodigos((data ?? []) as CodigoPendente[]);
+      setConvites((data ?? []) as Convite[]);
     } catch (e: any) {
       Alert.alert("Erro", e?.message);
     } finally {
@@ -57,38 +57,37 @@ export default function CadastroMembro() {
   }
 
   async function gerarCodigo() {
-    if (!profile?.bonde_id) {
-      Alert.alert("Erro", "Você precisa estar vinculado a um bonde.");
+    if (!profile?.bonde_id && !profile?.zona_id) {
+      Alert.alert("Erro", "Você precisa estar vinculado a um bonde ou zona.");
       return;
     }
     try {
       setGerandoCodigo(true);
 
-      // Gera código único de 6 chars
       const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-      let codigo = "";
-      for (let i = 0; i < 6; i++) {
-        codigo += chars[Math.floor(Math.random() * chars.length)];
-      }
+      let sufixo = "";
+      for (let i = 0; i < 6; i++) sufixo += chars[Math.floor(Math.random() * chars.length)];
+      const codigo = "TJG-" + sufixo;
 
       const expira_em = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-      const { error } = await supabase.from("codigos_cadastro").insert({
+      const { error } = await supabase.from("convites").insert({
         codigo,
-        gerado_por: profile.id,
-        bonde_id: profile.bonde_id,
+        bonde_id: profile?.bonde_id ?? null,
+        criado_por: profile?.id,
         expira_em,
+        usado: false,
       });
 
       if (error) throw error;
 
-      await carregarCodigos();
+      await carregarConvites();
 
       Alert.alert(
         "Código gerado! ✅",
         `Código: ${codigo}\n\nVálido por 24 horas.\nMostre para o novo membro se cadastrar.`,
         [
-          { text: "Compartilhar", onPress: () => Share.share({ message: `Código de cadastro TJG: ${codigo}\nVálido por 24 horas.` }) },
+          { text: "Compartilhar", onPress: () => Share.share({ message: `Código de cadastro TJG: ${codigo}\nVálido por 24 horas.\nBaixe o app e use na tela "Cadastre-se".` }) },
           { text: "OK" },
         ]
       );
@@ -103,7 +102,7 @@ export default function CadastroMembro() {
     return new Date(expira_em) < new Date();
   }
 
-  function statusTag(item: CodigoPendente) {
+  function statusTag(item: Convite) {
     if (item.usado) return { label: "Usado", color: "#1D9E75" };
     if (expirado(item.expira_em)) return { label: "Expirado", color: "#E24B4A" };
     return { label: "Ativo", color: "#EF9F27" };
@@ -135,10 +134,10 @@ export default function CadastroMembro() {
         <Text style={s.gerarHint}>O membro usa o código na tela "Cadastre-se" do app</Text>
       </View>
 
-      {/* Lista de códigos */}
+      {/* Lista de convites */}
       <View style={s.listHeader}>
         <Text style={s.listTitle}>Códigos gerados</Text>
-        <Pressable onPress={carregarCodigos}>
+        <Pressable onPress={carregarConvites}>
           <Ionicons name="refresh" size={18} color="#64748b" />
         </Pressable>
       </View>
@@ -147,7 +146,7 @@ export default function CadastroMembro() {
         ? <ActivityIndicator style={{ marginTop: 30 }} />
         : (
           <FlatList
-            data={codigos}
+            data={convites}
             keyExtractor={(i) => i.id}
             contentContainerStyle={{ padding: 16, paddingTop: 0 }}
             ListEmptyComponent={
@@ -161,7 +160,7 @@ export default function CadastroMembro() {
                 <View style={s.codigoCard}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.codigoCodigo}>{item.codigo}</Text>
-                    <Text style={s.codigoDate}>Gerado: {formatDate(item.criado_em)}</Text>
+                    <Text style={s.codigoDate}>Gerado: {formatDate(item.created_at)}</Text>
                     {!item.usado && (
                       <Text style={s.codigoDate}>Expira: {formatDate(item.expira_em)}</Text>
                     )}
